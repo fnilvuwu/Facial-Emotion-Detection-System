@@ -102,15 +102,27 @@ async function initializeMediaPipe() {
             const offScreenCtx = offScreenCanvas.getContext('2d');
             offScreenCtx.drawImage(originalRoiCanvas, 0, 0, width, height, 0, 0, 48, 48);
 
+            // Convert the ROI to grayscale
+            const offScreenImgData = offScreenCtx.getImageData(0, 0, 48, 48);
+            const grayImgData = new Uint8ClampedArray(offScreenImgData.data.length);
+            for (let i = 0; i < offScreenImgData.data.length; i += 4) {
+                const minVal = Math.min(offScreenImgData.data[i], Math.min(offScreenImgData.data[i + 1], offScreenImgData.data[i + 2]));
+                grayImgData[i] = minVal;
+                grayImgData[i + 1] = minVal;
+                grayImgData[i + 2] = minVal;
+                grayImgData[i + 3] = offScreenImgData.data[i + 3];
+            }
+            offScreenCtx.putImageData(new ImageData(grayImgData, 48, 48), 0, 0);
+
             // Draw the scaled ROI on the canvasRoi
             roiCtx.clearRect(0, 0, canvasRoi.width, canvasRoi.height);
 
             // Update canvas size dynamically if the image data size changes.
-            canvasRoi.width = imgData.width;
-            canvasRoi.height = imgData.height;
+            canvasRoi.width = 48;
+            canvasRoi.height = 48;
 
-            // Draw the image data centered in the canvas.
-            roiCtx.putImageData(imgData, 0, 0);
+            // Draw the grayscale image data centered in the canvas.
+            roiCtx.putImageData(new ImageData(grayImgData, 48, 48), 0, 0);
 
             // Preprocess original ROI and predict emotion
             const currentTime = Date.now();
